@@ -4,6 +4,7 @@
 
 #include "cqhttp/logging/handlers/console.h"
 #include "cqhttp/logging/handlers/file.h"
+#include "cqhttp/utils/filesystem.h"
 
 #undef ERROR
 
@@ -57,8 +58,8 @@ namespace cqhttp::plugins {
             logging::error(TAG, u8"未知的日志等级 " + log_level);
         }
 
-        cq::logging::info_success(TAG, u8"日志系统初始化成功");
-        cq::logging::info(TAG, u8"请在 酷Q 主目录的 data\\app\\io.github.richardchien.coolqhttpapi\\log\\ 中查看日志文件");
+        cq::logging::info(TAG, u8"日志系统初始化完成");
+        cq::logging::info(TAG, u8"请在 酷Q 主目录的 " + utils::fs::app_dir_rel_path("log") + u8" 中查看日志文件");
         ctx.next();
     }
 

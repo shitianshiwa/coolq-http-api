@@ -17,6 +17,7 @@ namespace cqhttp {
 
             LIFECYCLE_ENABLE,
             LIFECYCLE_DISABLE,
+            LIFECYCLE_CONNECT,
         };
 
         Type meta_event_type = UNKNOWN;
@@ -39,6 +40,9 @@ namespace cqhttp {
 
     struct LifecycleMetaEvent final : MetaEvent {
         LifecycleMetaEvent() : MetaEvent() { meta_event_type = LIFECYCLE; }
+
+        enum class _PostMethod : int { ALL, HTTP, WEBSOCKET, NONE };
+        _PostMethod _post_method = _PostMethod::ALL;
     };
 
     inline void to_json(json &j, const LifecycleMetaEvent &e) {
@@ -48,6 +52,8 @@ namespace cqhttp {
                 return "enable";
             case MetaEvent::LIFECYCLE_DISABLE:
                 return "disable";
+            case MetaEvent::LIFECYCLE_CONNECT:
+                return "connect";
             default:
                 return "unknown";
             }
@@ -57,6 +63,7 @@ namespace cqhttp {
             {"post_type", "meta_event"},
             {"meta_event_type", e.meta_event_type},
             {"sub_type", sub_type_str},
+            {"_post_method", static_cast<int>(e._post_method)},
         };
     }
 
@@ -64,6 +71,7 @@ namespace cqhttp {
         HeartbeatMetaEvent() : MetaEvent() { meta_event_type = HEARTBEAT; }
 
         json status;
+        int64_t interval; // in millisecond
     };
 
     inline void to_json(json &j, const HeartbeatMetaEvent &e) {
@@ -71,6 +79,7 @@ namespace cqhttp {
             {"post_type", "meta_event"},
             {"meta_event_type", e.meta_event_type},
             {"status", e.status},
+            {"interval", e.interval},
         };
     }
 
@@ -84,6 +93,8 @@ namespace cqhttp {
         emit_event(event, json(event));
     }
 
-    void emit_lifecycle_meta_event(const MetaEvent::SubType sub_type = MetaEvent::SUBTYPE_DEFAULT);
-    void emit_heartbeat_meta_event(const json status);
+    void emit_lifecycle_meta_event(
+        const MetaEvent::SubType sub_type,
+        const LifecycleMetaEvent::_PostMethod post_method = LifecycleMetaEvent::_PostMethod::ALL);
+    void emit_heartbeat_meta_event(const json status, const int64_t interval);
 } // namespace cqhttp

@@ -21,8 +21,8 @@ namespace cqhttp::plugins {
         void hook_after_event(EventContext<cq::Event> &ctx) override;
 
         bool good() const override {
-            return (!api_ || api_->started()) && (!event_ || event_->started())
-                   && (!universal_ || universal_->started());
+            return (!api_ || api_->connected()) && (!event_ || event_->connected())
+                   && (!universal_ || universal_->connected());
         }
 
     private:
@@ -45,6 +45,7 @@ namespace cqhttp::plugins {
             virtual void stop();
 
             virtual bool started() const { return started_; }
+            virtual bool connected() const { return connected_; }
 
         protected:
             virtual void init();
@@ -60,6 +61,7 @@ namespace cqhttp::plugins {
             bool reconnect_on_code_1000_;
 
             std::atomic_bool started_ = false;
+            std::atomic_bool connected_ = false;
 
             union Client {
                 std::shared_ptr<SimpleWeb::SocketClient<SimpleWeb::WS>> ws;
@@ -112,7 +114,10 @@ namespace cqhttp::plugins {
             using ClientBase::ClientBase;
             std::string name() override { return "Event"; }
 
-            void push_event(const json &payload) const;
+            void push_event(const json &payload);
+
+        protected:
+            void init() override;
         };
 
         std::shared_ptr<EventClient> event_;

@@ -1,6 +1,9 @@
 var rootUrl = 'https://cqhttp.cc/docs';
 
 var versions = [
+    { title: 'v4.15', path: '/4.15/' },
+    { title: 'v4.14', path: '/4.14/' },
+    { title: 'v4.13', path: '/4.13/' },
     { title: 'v4.12', path: '/4.12/' },
     { title: 'v4.11', path: '/4.11/' },
     { title: 'v4.10', path: '/4.10/' },
@@ -25,7 +28,7 @@ var versions = [
 var latestVersionIndex = 0;
 var currentVersionIndex = -1;
 
-versions[latestVersionIndex].title += ' (latest)';
+versions[latestVersionIndex].title += ' (最新)';
 
 versions.forEach(function (v, idx) {
     if (v.path) {
@@ -44,7 +47,7 @@ versions.forEach(function (v) {
 });
 
 config.nav.push({
-    title: '文档版本: ' + versions[currentVersionIndex].title, type: 'dropdown', items: versions
+    title: '版本: ' + versions[currentVersionIndex].title, type: 'dropdown', items: versions
 });
 
 if (currentVersionIndex > latestVersionIndex) {

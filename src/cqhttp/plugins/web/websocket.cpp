@@ -12,32 +12,42 @@ namespace cqhttp::plugins {
     void WebSocket::init_server() {
         logging::debug(TAG, u8"初始化 WebSocket");
 
-        auto on_open_callback = [=](const shared_ptr<WsServer::Connection> connection) {
-            logging::debug(TAG, u8"收到 WebSocket 连接：" + connection->path);
-            const json args = SimpleWeb::QueryString::parse(connection->query_string);
-            const auto authorized = authorize(access_token_, connection->header, args);
-            if (!authorized) {
-                logging::debug(TAG, u8"没有提供 Token 或 Token 不符，已关闭连接");
-                const auto out_message = make_shared<WsServer::OutMessage>();
-                *out_message << "authorization failed";
-                connection->send(out_message);
-                connection->send_close(1000); // we don't want this client any more
-            }
+        auto gen_on_open_callback = [=](const bool send_connect_event) {
+            return [=](const shared_ptr<WsServer::Connection> connection) {
+                logging::debug(TAG,
+                               u8"收到 WebSocket 连接：" + connection->path + u8"，来源 IP："
+                                   + connection->remote_endpoint_address());
+                const json args = SimpleWeb::QueryString::parse(connection->query_string);
+                const auto authorized = authorize(access_token_, connection->header, args);
+                if (!authorized) {
+                    logging::debug(TAG, u8"没有提供 Token 或 Token 不符，已关闭连接");
+                    const auto out_message = make_shared<WsServer::OutMessage>();
+                    *out_message << "authorization failed";
+                    connection->send(out_message);
+                    connection->send_close(1000); // we don't want this client any more
+                } else if (send_connect_event) {
+                    emit_lifecycle_meta_event(MetaEvent::SubType::LIFECYCLE_CONNECT);
+                }
+            };
         };
 
         server_ = make_shared<WsServer>();
 
         auto &api_endpoint = server_->endpoint["^/api/?$"];
-        api_endpoint.on_open = on_open_callback;
-        api_endpoint.on_message = ws_api_on_message<WsServer>;
+        api_endpoint.on_open = gen_on_open_callback(false);
+        api_endpoint.on_message = [](auto connection, auto message) {
+            ws_api_on_message<WsServer>(connection, message);
+        };
 
         auto &event_endpoint = server_->endpoint["^/event/?$"];
-        event_endpoint.on_open = on_open_callback;
+        event_endpoint.on_open = gen_on_open_callback(true);
 
         // endpoint for both API and Event
         auto &universal_endpoint = server_->endpoint["^/$"];
-        universal_endpoint.on_open = on_open_callback;
-        universal_endpoint.on_message = ws_api_on_message<WsServer>;
+        universal_endpoint.on_open = gen_on_open_callback(true);
+        universal_endpoint.on_message = [](auto connection, auto message) {
+            ws_api_on_message<WsServer>(connection, message);
+        };
     }
 
     void WebSocket::hook_enable(Context &ctx) {
@@ -49,7 +59,7 @@ namespace cqhttp::plugins {
 
             server_->config.thread_pool_size =
                 fix_server_thread_pool_size(ctx.config->get_integer("server_thread_pool_size", 4));
-            server_->config.address = ctx.config->get_string("ws_host", "[::]");
+            server_->config.address = ctx.config->get_string("ws_host", "0.0.0.0");
             server_->config.port = ctx.config->get_integer("ws_port", 6700);
             thread_ = thread([&]() {
                 started_ = true;
@@ -82,6 +92,13 @@ namespace cqhttp::plugins {
     }
 
     void WebSocket::hook_after_event(EventContext<cq::Event> &ctx) {
+        if (ctx.data["post_type"] == "meta_event" && ctx.data["meta_event_type"] == "lifecycle"
+            && ctx.data["_post_method"] != static_cast<int>(LifecycleMetaEvent::_PostMethod::ALL)
+            && ctx.data["_post_method"] != static_cast<int>(LifecycleMetaEvent::_PostMethod::WEBSOCKET)) {
+            ctx.next();
+            return;
+        }
+
         static const auto path_regex = regex("^(/|/event/?)$");
         if (started_) {
             logging::debug(TAG, u8"开始通过 WebSocket 服务端推送事件");

@@ -13,9 +13,13 @@
 #include "cqhttp/utils/string.h"
 #include "cqsdk/utils/base64.h"
 
+#include "rcnb/decode.h"
+
 using namespace std;
 
 namespace cqhttp::plugins {
+    static const auto TAG = u8"增强CQ码";
+
     using cq::Message;
     using cq::MessageSegment;
     using boost::algorithm::starts_with;
@@ -114,19 +118,26 @@ namespace cqhttp::plugins {
                 use_cache = to_bool(segment.data["cache"], true);
             }
 
-            if (use_cache) {
-                filename = md5_hash_hex(url) + "." + check_ext(url);
-            } else {
-                filename = md5_hash_hex(url + to_string(random_int(1, 10000))) + "." + check_ext(url);
+            auto timeout = 0L; // do not timeout by default
+            if (segment.data.find("timeout") != segment.data.end()) {
+                timeout = stol(segment.data["timeout"]);
             }
+
+            filename = md5_hash_hex(url) + "." + check_ext(url);
 
             make_file = [=] {
                 const auto filepath = data_file_full_path(data_dir, filename);
+                const auto filepath_ws = s2ws(filepath);
 
-                if (use_cache && fs::is_regular_file(s2ws(filepath)) /* use cache */
-                    || utils::http::download_file(url, filepath, true) /* or perform download */) {
+                if (!use_cache && fs::is_regular_file(filepath_ws)) {
+                    fs::remove(filepath_ws);
+                }
+                if (use_cache && fs::is_regular_file(filepath_ws) /* use cache */
+                    || utils::http::download_file(url, filepath, true, timeout) /* or perform download */) {
+                    logging::debug(TAG, u8"文件已缓存或下载成功，URL：" + url);
                     return true;
                 }
+                logging::warning(TAG, u8"文件下载失败，URL：" + url);
                 return false;
             };
         } else if (smatch m; regex_search(file, m, regex(R"(^file:\/{0,3})"))) {
@@ -137,9 +148,11 @@ namespace cqhttp::plugins {
 
                 try {
                     copy_file(s2ws(src_filepath), s2ws(filepath), fs::copy_options::overwrite_existing);
+                    logging::debug(TAG, u8"文件拷贝成功，源路径：" + src_filepath);
                     return true;
                 } catch (fs::filesystem_error &) {
                     // copy failed
+                    logging::warning(TAG, u8"文件拷贝失败，源路径：" + src_filepath);
                     return false;
                 }
             };
@@ -149,6 +162,27 @@ namespace cqhttp::plugins {
             make_file = [=, &file, &filename] {
                 const auto base64_encoded = file.substr(strlen("base64://"));
                 const auto raw = base64::decode(base64_encoded);
+                const auto file_type = detect_file_type(raw);
+                filename = filename + "." + (file_type.ext.empty() ? "tmp" : file_type.ext);
+                const auto filepath = data_file_full_path(data_dir, filename);
+
+                if (ofstream f(ansi(filepath), ios::binary | ios::out); f.is_open()) {
+                    f << raw;
+                    return true;
+                }
+                return false;
+            };
+        } else if (starts_with(file, "rcnb://")) {
+            filename = md5_hash_hex("from_rcnb_" + to_string(time(nullptr)) + "_"
+                                    + to_string(random_int(1, 10000))); // note that there isn't an extension yet
+            make_file = [=, &file, &filename] {
+                const auto rcnb_encoded = file.substr(strlen("rcnb://"));
+                rcnb::decoder dec;
+                stringstream ss;
+                wstringstream wss;
+                wss << s2ws(rcnb_encoded);
+                dec.decode(wss, ss);
+                const auto raw = ss.str();
                 const auto file_type = detect_file_type(raw);
                 filename = filename + "." + (file_type.ext.empty() ? "tmp" : file_type.ext);
                 const auto filepath = data_file_full_path(data_dir, filename);
@@ -191,6 +225,7 @@ namespace cqhttp::plugins {
     static MessageSegment enhance_receive_image(const MessageSegment &raw) {
         if (raw.data.find("url") != raw.data.end()) {
             // already has "url" parameter, skip it
+            return raw;
         }
 
         const auto file_it = raw.data.find("file");

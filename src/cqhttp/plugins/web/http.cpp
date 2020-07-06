@@ -15,6 +15,13 @@ using HttpServer = SimpleWeb::Server<SimpleWeb::HTTP>;
 namespace cqhttp::plugins {
     static const auto TAG = "HTTP";
 
+    static void log_request(shared_ptr<HttpServer::Request> request) {
+        logging::debug(TAG,
+                       u8"收到 HTTP 请求：" + request->method + " " + request->path
+                           + (request->query_string.empty() ? "" : "?" + request->query_string) + u8"，来源 IP："
+                           + request->remote_endpoint_address());
+    }
+
     void Http::init_server() {
         logging::debug(TAG, u8"初始化 HTTP 服务器");
 
@@ -27,11 +34,23 @@ namespace cqhttp::plugins {
             };
 
         const auto action_path_regex = "^/([^/\\s]+)/?$";
+        server_->resource[action_path_regex]["OPTIONS"] =
+            [=](shared_ptr<HttpServer::Response> response, shared_ptr<HttpServer::Request> request) {
+                log_request(request);
+                if (enable_cors_) {
+                    response->write("",
+                                    {
+                                        {"Access-Control-Allow-Origin", "*"},
+                                        {"Access-Control-Allow-Methods", "*"},
+                                        {"Access-Control-Allow-Headers", "*"},
+                                    });
+                } else {
+                    response->write(SimpleWeb::StatusCode::client_error_method_not_allowed);
+                }
+            };
         server_->resource[action_path_regex]["GET"] = server_->resource[action_path_regex]["POST"] =
             [=](shared_ptr<HttpServer::Response> response, shared_ptr<HttpServer::Request> request) {
-                logging::debug(TAG,
-                               u8"收到 API 请求：" + request->method + " " + request->path
-                                   + (request->query_string.empty() ? "" : "?" + request->query_string));
+                log_request(request);
 
                 auto params = json::object();
                 const json args = request->parse_query_string();
@@ -94,7 +113,8 @@ namespace cqhttp::plugins {
                     response->write(SimpleWeb::StatusCode::client_error_not_found);
                 } else {
                     logging::debug(TAG, u8"动作 " + action + u8" 执行成功");
-                    const decltype(request->header) headers{{"Content-Type", "application/json; charset=UTF-8"}};
+                    decltype(request->header) headers{{"Content-Type", "application/json; charset=UTF-8"}};
+                    if (enable_cors_) headers.emplace("Access-Control-Allow-Origin", "*");
                     const auto resp_body = json(result).dump();
                     logging::debug(TAG, u8"响应数据已准备完毕：" + resp_body);
                     response->write(resp_body, headers);
@@ -107,6 +127,8 @@ namespace cqhttp::plugins {
         const auto regex = "^/(data/(?:bface|image|record|show)/.+)$";
         server_->resource[regex]["GET"] =
             [=](shared_ptr<HttpServer::Response> response, shared_ptr<HttpServer::Request> request) {
+                log_request(request);
+
                 if (!serve_data_files_) {
                     response->write(SimpleWeb::StatusCode::client_error_not_found);
                     return;
@@ -169,13 +191,14 @@ namespace cqhttp::plugins {
         use_http_ = ctx.config->get_bool("use_http", true);
         access_token_ = ctx.config->get_string("access_token", "");
         serve_data_files_ = ctx.config->get_bool("serve_data_files", false);
+        enable_cors_ = ctx.config->get_bool("enable_cors", false);
 
         if (use_http_) {
             init_server();
 
             server_->config.thread_pool_size =
                 fix_server_thread_pool_size(ctx.config->get_integer("server_thread_pool_size", 4));
-            server_->config.address = ctx.config->get_string("host", "[::]");
+            server_->config.address = ctx.config->get_string("host", "0.0.0.0");
             server_->config.port = ctx.config->get_integer("port", 5700);
             thread_ = thread([&]() {
                 started_ = true;
@@ -300,40 +323,49 @@ namespace cqhttp::plugins {
     }
 
     void Http::hook_after_event(EventContext<cq::Event> &ctx) {
-        if (!post_url_.empty()) {
-            logging::debug(TAG, u8"开始通过 HTTP 上报事件");
-            const auto resp = post_json(post_url_, ctx.data, secret_, post_timeout_);
+        if (post_url_.empty()) {
+            ctx.next();
+            return;
+        }
+        if (ctx.data["post_type"] == "meta_event" && ctx.data["meta_event_type"] == "lifecycle"
+            && ctx.data["_post_method"] != static_cast<int>(LifecycleMetaEvent::_PostMethod::ALL)
+            && ctx.data["_post_method"] != static_cast<int>(LifecycleMetaEvent::_PostMethod::HTTP)) {
+            ctx.next();
+            return;
+        }
 
-            if (resp.status_code == 0) {
-                logging::warning(TAG, u8"HTTP 上报地址 " + post_url_ + u8" 无法访问");
+        logging::debug(TAG, u8"开始通过 HTTP 上报事件");
+        const auto resp = post_json(post_url_, ctx.data, secret_, post_timeout_);
+
+        if (resp.status_code == 0) {
+            logging::warning(TAG, u8"HTTP 上报地址 " + post_url_ + u8" 无法访问");
+        } else {
+            const auto log_msg = u8"通过 HTTP 上报数据到 " + post_url_ + (resp.ok() ? u8" 成功" : u8" 失败")
+                                 + u8"，状态码：" + to_string(resp.status_code);
+            if (resp.ok()) {
+                logging::info_success(TAG, log_msg);
             } else {
-                const auto log_msg = u8"通过 HTTP 上报数据到 " + post_url_ + (resp.ok() ? u8" 成功" : u8" 失败")
-                                     + u8"，状态码：" + to_string(resp.status_code);
-                if (resp.ok()) {
-                    logging::info_success(TAG, log_msg);
-                } else {
-                    logging::warning(TAG, log_msg);
-                }
+                logging::warning(TAG, log_msg);
             }
+        }
 
-            if (resp.ok() && !resp.body.empty()) {
-                logging::debug(TAG, u8"收到响应 " + resp.body);
+        if (resp.ok() && !resp.body.empty()) {
+            logging::debug(TAG, u8"收到响应 " + resp.body);
 
-                const auto resp_payload = resp.get_json();
-                if (resp_payload.is_object()) {
-                    const utils::JsonEx params = resp_payload;
+            const auto resp_payload = resp.get_json();
+            if (resp_payload.is_object()) {
+                const utils::JsonEx params = resp_payload;
 
-                    // note here that the ctx.data object was processed by backward_compatibility plugin,
-                    // but now that the ".handle_quick_operation" action can handle legacy data format,
-                    // it's ok here to use ctx.data directly
-                    call_action(".handle_quick_operation", {{"context", ctx.data}, {"operation", params.raw}});
+                // note here that the ctx.data object was processed by backward_compatibility plugin,
+                // but now that the ".handle_quick_operation" action can handle legacy data format,
+                // it's ok here to use ctx.data directly
+                call_action(".handle_quick_operation", {{"context", ctx.data}, {"operation", params.raw}});
 
-                    if (params.get_bool("block", false)) {
-                        ctx.event.block();
-                    }
-                } else {
-                    logging::debug(TAG, u8"上报响应不是有效的 JSON，已忽略");
+                if (params.get_bool("block", false)) {
+                    ctx.event.block();
                 }
+            } else {
+                logging::debug(TAG, u8"上报响应不是有效的 JSON，已忽略");
             }
         }
 

@@ -72,7 +72,8 @@ namespace cqhttp::plugins {
                     universal_ = nullptr;
                 }
             } else {
-                auto url = check_ws_url(ctx.config->get_string("ws_reverse_api_url", fallback_url));
+                const auto api_url = ctx.config->get_string("ws_reverse_api_url");
+                auto url = check_ws_url(api_url.empty() ? fallback_url : api_url);
                 if (!url.empty()) {
                     api_ = make_shared<ApiClient>(url, access_token, reconnect_interval, reconnect_on_code_1000);
                     api_->start();
@@ -80,7 +81,8 @@ namespace cqhttp::plugins {
                     api_ = nullptr;
                 }
 
-                url = check_ws_url(ctx.config->get_string("ws_reverse_event_url", fallback_url));
+                const auto event_url = ctx.config->get_string("ws_reverse_event_url");
+                url = check_ws_url(event_url.empty() ? fallback_url : event_url);
                 if (!url.empty()) {
                     event_ = make_shared<EventClient>(url, access_token, reconnect_interval, reconnect_on_code_1000);
                     event_->start();
@@ -111,6 +113,13 @@ namespace cqhttp::plugins {
     }
 
     void WebSocketReverse::hook_after_event(EventContext<cq::Event> &ctx) {
+        if (ctx.data["post_type"] == "meta_event" && ctx.data["meta_event_type"] == "lifecycle"
+            && ctx.data["_post_method"] != static_cast<int>(LifecycleMetaEvent::_PostMethod::ALL)
+            && ctx.data["_post_method"] != static_cast<int>(LifecycleMetaEvent::_PostMethod::WEBSOCKET)) {
+            ctx.next();
+            return;
+        }
+
         if (event_) {
             event_->push_event(ctx.data);
         }

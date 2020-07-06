@@ -10,10 +10,6 @@ namespace cqhttp::helpers {
 
         if (url == "global" || url == "github") {
             url = "https://raw.githubusercontent.com/richardchien/coolq-http-api-release/master/";
-        } else if (url == "china" || url == "coding") {
-            url = "https://coding.net/u/richardchien/p/coolq-http-api-release/git/raw/master/";
-        } else if (url == "gitee") {
-            url = "https://gitee.com/richardchien/coolq-http-api-release/raw/master/";
         }
 
         if (!boost::ends_with(url, "/")) {

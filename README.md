@@ -1,4 +1,4 @@
-# CoolQ HTTP API 插件
+# CQHTTP
 
 [![License](https://img.shields.io/github/license/richardchien/coolq-http-api.svg)](https://raw.githubusercontent.com/richardchien/coolq-http-api/master/LICENSE)
 [![Build Status](https://img.shields.io/appveyor/ci/richardchien/coolq-http-api.svg)](https://ci.appveyor.com/project/richardchien/coolq-http-api)
@@ -11,7 +11,7 @@
 [![QQ 版本发布群](https://img.shields.io/badge/%E7%89%88%E6%9C%AC%E5%8F%91%E5%B8%83%E7%BE%A4-218529254-green.svg)](https://jq.qq.com/?_wv=1027&k=5Nl0zhE)
 [![Telegram 版本发布频道](https://img.shields.io/badge/%E7%89%88%E6%9C%AC%E5%8F%91%E5%B8%83%E9%A2%91%E9%81%93-join-green.svg)](https://t.me/cqhttp_release)
 
-通过 HTTP 或 WebSocket 对酷 Q 的事件进行上报以及接收请求来调用酷 Q 的 DLL 接口，从而可以使用其它语言编写酷 Q 插件。支持 Windows 7 和 Windows Server 2008 及更新版本，也可以运行在 Wine、Docker。
+通过 HTTP 或 WebSocket 对 [酷Q](https://cqp.cc/) 的事件进行上报以及接收请求来调用 酷Q 的 DLL 接口，从而可以使用其它语言编写 酷Q 插件。支持 Windows 7 和 Windows Server 2008 及更新版本，也可以运行在 Wine、Docker。
 
 ## 使用方法
 
@@ -23,30 +23,29 @@
 
 对于下面这些语言的开发者，如果不想自己处理繁杂的请求和解析操作，可以尝试社区中开发者们已经封装好的的 SDK 或开发框架：
 
-| | 语言 | Web 框架 | 通信方式 | 插件版本 | 地址 | 作者 |
-| ---- | --- | ------- | ------- | ------- | --- | ---- |
-|  | Python | Quart | HTTP,<br>反向 WebSocket | 4 | [richardchien/python-aiocqhttp](https://github.com/richardchien/python-aiocqhttp) | richardchien |
-|  | Python | Flask | HTTP | 3, 4 | [richardchien/python-cqhttp](https://github.com/richardchien/python-cqhttp) | richardchien |
-| ⭐ | Python | Quart | HTTP,<br>反向 WebSocket | 4 | [richardchien/nonebot](https://github.com/richardchien/nonebot) | richardchien |
-| ⭐ | Node.js | WebSocket-Node | WebSocket | 4 | [momocow/node-cq-websocket](https://github.com/momocow/node-cq-websocket) | momocow |
-|  | Node.js | Koa | HTTP | 3, 4 | [richardchien/cqhttp-node-sdk](https://github.com/richardchien/cqhttp-node-sdk) | richardchien |
-|  | Node.js | Koa | HTTP | ? | [trustgit/nodebot](https://gitlab.com/trustgit/nodebot) | t532 |
-|  | Node.js | ws 或 uWebSockets.js | 反向 WebSocket | 4 | [zyntuz/yacqhttp](https://github.com/zyntuz/yacqhttp) | zyntuz |
-|  | Node.js | WebSocket-Node | WebSocket | 4 | [CaoMeiYouRen/node-coolq-robot](https://github.com/CaoMeiYouRen/node-coolq-robot) | CaoMeiYouRen |
-|  | Deno | 标准库 | 反向 WebSocket | 4 | [nenojs/deno-cqhttp](https://github.com/nenojs/deno-cqhttp) | rikakomoe |
-|  | PHP | - | HTTP | 3, 4 | [kilingzhang/coolq-php-sdk](https://github.com/kilingzhang/coolq-php-sdk) | kilingzhang |
-| ⭐ | PHP | - | HTTP | 4 | [kj415j45/kjBot](https://github.com/kj415j45/kjBot) | kj415j45 |
-| ⭐ | PHP | Swoole | 反向 WebSocket | 4 | [crazywhalecc/CQBot-swoole](https://github.com/crazywhalecc/CQBot-swoole) | crazywhalecc |
-|  | PHP | - | HTTP | ? | [LovelyA72/YeziiBot-v1](https://github.com/LovelyA72/YeziiBot-v1) | LovelyA72 |
-| ⭐ | Java | 标准库 | HTTP | 4 | [HyDevelop/PicqBotX](https://github.com/HyDevelop/PicqBotX) | Hykilpikonna |
-|  | Java | Spring | 反向 WebSocket | 4 | [lz1998/Spring-CQ](https://github.com/lz1998/Spring-CQ) | lz1998 |
-|  | Java | JFinal | HTTP | 4 | [thevsk/cqhttp-java-jfinal-sdk](https://github.com/thevsk/cqhttp-java-jfinal-sdk) | thevsk |
-|  | Java | 标准库 | HTTP | 3 | [yangjinhe/maintain-robot](https://github.com/yangjinhe/maintain-robot) | yangjinhe |
-| ⭐ | Go | 标准库 | **API:**<br>HTTP,<br>WebSocket<br>**Event:**<br>HTTP,<br>长轮询,<br>WebSocket,<br>反向 WebSocket | 3, 4 | [catsworld/qq-bot-api](https://github.com/catsworld/qq-bot-api) | catsworld<br>rikakomoe |
-|  | Go | 标准库 | HTTP | 3 | [juzi5201314/cqhttp-go-sdk](https://github.com/juzi5201314/cqhttp-go-sdk) | juzi5201314 |
-| ⭐ | C# | 标准库 | HTTP,<br>WebSocket | 4 | [int-and-his-friends/Sisters.WudiLib](https://github.com/int-and-his-friends/Sisters.WudiLib) | bleatingsheep |
-| ⭐ | C# | 标准库 | HTTP,<br>WebSocket,<br>反向 WebSocket | 4 | [frankli0324/cqhttp.Cyan](https://github.com/frankli0324/cqhttp.Cyan) | frankli0324 |
-|  | PowerShell | 标准库 | HTTP | 4 | [richardchien/cqhttp-powershell-sdk](https://github.com/richardchien/cqhttp-powershell-sdk) | richardchien |
+| | 语言 | Web 框架 | 通信方式 | 地址 | 核心作者 |
+| --- | --- | --- | --- | --- | --- |
+| ⭐ | Python | Quart | HTTP,<br>反向 WebSocket | [nonebot/nonebot](https://github.com/nonebot/nonebot) | richardchien<br>yanyongyu |
+| ⭐ | Python | Quart | HTTP,<br>反向 WebSocket | [nonebot/aiocqhttp](https://github.com/nonebot/aiocqhttp) | richardchien |
+| ⭐ | Node.js | WebSocket-Node | WebSocket | [momocow/node-cq-websocket](https://github.com/momocow/node-cq-websocket) | momocow |
+| ⭐ | Node.js | Express | HTTP,<br>WebSocket | [koishijs/koishi](https://github.com/koishijs/koishi) | Shigma |
+|  | Node.js | WebSocket-Node | WebSocket | [CaoMeiYouRen/node-coolq-robot](https://github.com/CaoMeiYouRen/node-coolq-robot) | CaoMeiYouRen |
+|  | Node.js | Express | HTTP | [XHMM/lemon-bot](https://github.com/XHMM/lemon-bot) | XHMM |
+|  | JavaScript | - | WebSocket | [pandolia/js-bot](https://github.com/pandolia/js-bot) | pandolia |
+|  | Deno | 标准库 | 反向 WebSocket | [nenojs/deno-cqhttp](https://github.com/nenojs/deno-cqhttp) | rikakomoe |
+| ⭐ | PHP | Swoole | 反向 WebSocket | [zhamao-robot/zhamao-framework](https://github.com/zhamao-robot/zhamao-framework) | crazywhalecc |
+|  | PHP | - | HTTP | [LovelyA72/YeziiBot-v2](https://github.com/LovelyA72/YeziiBot-v2) | LovelyA72 |
+| ⭐ | Java | 标准库 | HTTP | [HyDevelop/PicqBotX](https://github.com/HyDevelop/PicqBotX) | Hykilpikonna |
+|  | Java<br>Kotlin<br>Groovy | Spring | 反向 WebSocket | [lz1998/Spring-CQ](https://github.com/lz1998/Spring-CQ)（[教程](https://www.bilibili.com/video/av89649630/)） | lz1998 |
+|  | Java | 标准库 | HTTP | [ForteScarlet/simple-robot-core](https://github.com/ForteScarlet/simple-robot-core) | ForteScarlet |
+|  | Java | JFinal | HTTP | [thevsk/cqhttp-java-jfinal-sdk](https://github.com/thevsk/cqhttp-java-jfinal-sdk) | thevsk |
+|  | Kotlin | 标准库 | HTTP | [JuerGenie/juerobot](https://github.com/JuerGenie/juerobot) | JuerGenie |
+| ⭐ | Go | 标准库 | **API:**<br>HTTP,<br>WebSocket<br>**Event:**<br>HTTP,<br>长轮询,<br>WebSocket,<br>反向 WebSocket | [catsworld/qq-bot-api](https://github.com/catsworld/qq-bot-api) | catsworld<br>rikakomoe |
+| ⭐ | C# | 标准库 | HTTP,<br>WebSocket | [int-and-his-friends/Sisters.WudiLib](https://github.com/int-and-his-friends/Sisters.WudiLib) | bleatingsheep |
+| ⭐ | C# | 标准库 | HTTP,<br>WebSocket,<br>反向 WebSocket | [frank-bots/cqhttp.Cyan](https://github.com/frank-bots/cqhttp.Cyan) | frankli0324 |
+|  | C# | Fleck | 反向 WebSocket | [cqbef/cqhttp.WebSocketReverse.NETCore](https://github.com/cqbef/cqhttp.WebSocketReverse.NETCore) | cqbef |
+|  | PowerShell | .NET | HTTP | [cqmoe/cqhttp-powershell-sdk](https://github.com/cqmoe/cqhttp-powershell-sdk) | richardchien |
+|  | Lua | lua-http | HTTP,<br>WebSocket | [cleoold/cqhttp-lua53-sdk](https://github.com/cleoold/cqhttp-lua53-sdk) | cleoold |
 
 ## 应用案例
 
@@ -56,7 +55,7 @@ QQ 机器人可以用来做很多有意思的事情，下面列出一些基于�
 | ------- | --- |
 | [milkice233/efb-qq-slave](https://github.com/milkice233/efb-qq-slave) | 基于 ehForwarderBot 框架的 QQ 从端 |
 | [projectriri/bot-gateway](https://projectriri.github.io/bot-gateway/) | 提供跨聊天平台的通用机器人 API 的机器人消息网关 |
-| [jqqqqqqqqqq/coolq-telegram-bot](https://github.com/jqqqqqqqqqq/coolq-telegram-bot) | QQ <-> Telegram Bot Framework & Forwarder |
+| [jqqqqqqqqqq/UnifiedMessageRelay](https://github.com/jqqqqqqqqqq/UnifiedMessageRelay) | QQ <-> Telegram Bot Framework & Forwarder |
 | [Mother-Ship/cabbageWeb](https://github.com/Mother-Ship/cabbageWeb) | 基于 Java Web 的 osu! 游戏数据查询机器人 |
 | [bdbai/Kobirt](https://github.com/bdbai/Kobirt) | Ingress 游戏辅助机器人 |
 | [JRT-FOREVER/hub2coolq](https://github.com/JRT-FOREVER/hub2coolq) | GitHub webhook 消息转发至 QQ 群 |
@@ -77,24 +76,34 @@ QQ 机器人可以用来做很多有意思的事情，下面列出一些基于�
 | [duan602728596/qqtools](https://github.com/duan602728596/qqtools) | 基于 Nwjs 的 QQ 群工具（摩点、口袋 48、微博提醒、入群欢迎、定时喊话、自定义命令和回复信息等） |
 | [Tsuk1ko/CQ-picfinder-robot](https://github.com/Tsuk1ko/CQ-picfinder-robot) | 基于 Saucenao 的搜图机器人 |
 | [kasora/dice](https://github.com/kasora/dice) | COC7 骰子 QQ 机器人 |
+| [shidenggui/tuishujun-for-qq](https://github.com/shidenggui/tuishujun-for-qq) | 基于推书君的小说查询推荐 QQ 机器人 |
+| [JuerGenie/cn.juerwhang.jgbot](https://github.com/JuerGenie/cn.juerwhang.jgbot) | 基于 [JuerGenie/juerobot](https://github.com/JuerGenie/juerobot) 的娱乐用 QQ 机器人 |
+| [drsanwujiang/DiceRobot](https://github.com/drsanwujiang/DiceRobot) | 一个基于 coolq-http-api 插件的 TRPG 骰子机器人 |
+| [UltraSoundX/SDFMU-Library](https://github.com/UltraSoundX/SDFMU-Library) | 山东第一医科大图书馆预约机器人 |
+| [Quan666/ELF_RSS](https://github.com/Quan666/ELF_RSS) | 基于 NoneBot 的，交互式 RSS 订阅、转发机器人 |
+| [lz1998/Spring-CQ-web](https://github.com/lz1998/Spring-CQ-web) | 基于 SpringCQ 的机器人 web 控制台 |
+| [suisei-cn/stargazer-qq](https://github.com/suisei-cn/stargazer-qq) | 一个灵活的 vtuber 发推/直播动态监控机器人 |
+| [Ninzore/Wecab](https://github.com/Ninzore/Wecab) | 网络内容聚合机器人，支持微博、B站、Twitter 等 |
 
 以上列出的只是实际应用中的一小部分，如果你使用本插件编写了任何好的应用案例或开发框架，也可以通过 issue 或 pull request 添加到这里的列表，共同充实社区。
 
 ## Nightly 版本
 
-如果你急需测试尚未发布的最新特性，可以前往 https://ci.appveyor.com/project/richardchien/coolq-http-api/build/artifacts 下载从 master 分支的最新代码构建出的 DLL 和 JSON 文件，将它们放入酷 Q 的 `app` 文件夹并开启酷 Q 的开发模式即可使用。
+如果你急需测试尚未发布的最新特性，可以前往 https://ci.appveyor.com/project/richardchien/coolq-http-api/build/artifacts 下载从 master 分支的最新代码构建出的 DLL 和 JSON 文件，将它们放入 酷Q 的 `app` 文件夹并开启 酷Q 的开发模式即可使用。
 
 **需要注意的是，master 分支所构建出的插件并不确保任何时候都是可用的，可能出现功能存在，但尚未完成的情况。**
 
 ## 修改、编译
 
-本项目基于 [CoolQ C++ SDK](https://github.com/richardchien/coolq-cpp-sdk)，构建方式和它一致，但由于一些历史原因，需要先手动下载预编译的依赖库。
+本项目基于 [CoolQ C++ SDK](https://github.com/richardchien/coolq-cpp-sdk)，构建方式和它一致，但由于一些历史原因，需要先手动下载预编译的依赖库，并且使用 **Visual Studio 2019** 和 **MSVC v141** 构建（可以只安装 Build Tools，不必安装完整的 IDE）。
 
 首先，克隆或下载本仓库代码：
 
 ```ps1
 git clone https://github.com/richardchien/coolq-http-api.git
 cd coolq-http-api
+git submodule init
+git submodule update
 ```
 
 然后，从 [这里](https://richardchien-my.sharepoint.com/:u:/g/personal/i_page_moe/Edh080tNqhZGvB7Qb3CR8k4BLdqEwdWZpmJJmig6qs9bLg?e=5wK22p) 下载 `vcpkg-export-20191012.zip`（也就是预编译的依赖），并解压到当前工程目录，确保工程目录结构如下：
@@ -141,34 +150,40 @@ powershell .\scripts\build.ps1 Debug
 - 感谢 酷Q 项目，为本插件的存在提供了可能
 - 感谢所有 SDK 作者，扩展了本插件的生态，使用户更容易上手
 - 感谢所有捐助者对我的鼓励，[这里](https://github.com/richardchien/thanks) 列出了捐助者名单（由于一些收款渠道无法知道对方是谁，如有遗漏请联系我修改）
+- 感谢 [sjdy521/Mojo-Webqq](https://github.com/sjdy521/Mojo-Webqq) 项目给本插件的接口设计提供了参考
 - 感谢所有用户反馈的 bug 和建议，使本插件不断完善
 
 ## 相似项目
+
+除了 CQHTTP，还有一些其它相似功能的插件：
 
 - [Hstb1230/http-to-cq](https://github.com/Hstb1230/http-to-cq)
 - [LEMOC](https://cqp.cc/t/29722)
 - [yukixz/cqsocketapi](https://github.com/yukixz/cqsocketapi)
 
-<!-- ## 捐助
+除了上述基于 酷Q 平台的插件，还有一些基于其它机器人平台、旨在兼容 CQHTTP 接口的项目，为 QQ 机器人开发社区注入了新的活力：
 
-如果你觉得本插件挺好用，不妨进行捐助～你的捐助会让我更加有动力完善插件，感谢你的支持！
+- [yyuueexxiinngg/cqhttp-mirai](https://github.com/yyuueexxiinngg/cqhttp-mirai)（兼容部分 API）
+- [iTXTech/mirai-native](https://github.com/iTXTech/mirai-native)（通过直接加载 CQHTTP 的 DLL 实现）
+
+## 捐助
+
+本项目是我在业余时间开发并免费提供使用的，如果你觉得本插件挺好用，不妨进行捐助，别忘了备注你的 ID 或昵称，以便我添加到捐助者名单～
+
+你的捐助会让我更加有动力完善插件，感谢你的支持！
 
 ### 爱发电
 
 https://afdian.net/@richardchien
 
-### 支付宝免费红包
+### 微信赞赏码
 
-![AliPay Red Bag](https://raw.githubusercontent.com/richardchien/coolq-http-api/master/docs/alipay-redbag.jpg)
+![WeChat Donate](https://raw.githubusercontent.com/richardchien/coolq-http-api/master/docs/wechat-donate.png)
 
 ### 支付宝转账
 
 ![AliPay](https://raw.githubusercontent.com/richardchien/coolq-http-api/master/docs/alipay.png)
 
-### 微信转账
-
-![WeChat](https://raw.githubusercontent.com/richardchien/coolq-http-api/master/docs/wechat.png)
-
 ### PayPal
 
-https://paypal.me/richardchien0 -->
+https://paypal.me/richardchien0
